@@ -1,7 +1,7 @@
 fa22-prj-yuhuiw2-qingyuh2-wg16
 
 #Topic
-The influence of Covid-19 on transportation
+The influence of Covid-19 on transportation,like that.
 
 #Proposal
 1. First, we will fetch the data from the Internet (eg. Kaggle) to our local database, and then select the useful columns which will have influence on the final results.
