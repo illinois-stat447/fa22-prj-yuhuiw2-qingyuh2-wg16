@@ -1,0 +1,183 @@
+---
+title: "STAT447"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE}
+library(httr)
+library(shinydashboard)
+library(shiny)
+library(data.table)
+library(shinyjs)
+library(shinyWidgets)
+library(tidyverse)
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Access data",tabName = "a"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "a",DT::dataTableOutput("table_names"))
+      )))
+
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")}
+
+
+shinyApp(ui, server)
+```
+```{r,warning=FALSE,message=FALSE,echo=FALSE}
+library(httr)
+library(shinydashboard)
+library(shiny)
+library(data.table)
+library(shinyjs)
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Plot your file in barchart",tabName = "c"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "c",sidebarLayout(
+        sidebarPanel(
+          uiOutput("picker1"),
+          actionButton("view6", "View Selection"),
+          uiOutput("picker"),
+          actionButton("view5", "View Selection")
+        ),mainPanel(DT::dataTableOutput("table1"),plotOutput("plot1"))
+      )
+      ))))
+
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")
+   datasetInput3 <- eventReactive(input$view5,{
+     data2 <- datasetInput4()
+    if (input$pick == "primary_type"){
+      return(ggplot(data2,aes(primary_type,fill = primary_type)) + geom_bar()+theme_classic()+ theme(legend.key.size = unit(5,"mm"),axis.text.x = element_text(angle = 45,vjust =1,hjust = 1)))
+    } else if (input$pick == "arrest")
+    {
+      return(ggplot(data2,aes(arrest,fill = arrest)) + geom_bar()+theme_classic())
+    } else if (input$pick == "domestic")
+    {
+      return(ggplot(data2,aes(domestic,fill = domestic)) + geom_bar()+theme_classic())
+    } else if (input$pick == "district")
+    {
+      return(ggplot(data2,aes(district,fill = district)) + geom_bar()+theme_classic())
+    } else if (input$pick == "location_description")
+    {
+      return(ggplot(data2,aes(location_description,fill = location_description)) + geom_bar()+theme_classic())
+    }
+   })
+   output$picker <- renderUI({
+    pickerInput(inputId = 'pick', 
+                label = 'Choose column you want to see', 
+                choices = c("primary_type","arrest","domestic","district","location_description"),
+                options = list(`actions-box` = TRUE),multiple = F)
+   })
+   datasetInput4 <- eventReactive(input$view6,{
+     dat1 <- result()
+      if(input$pick2 == "001"){
+        data2 <- dat1 %>% filter(district == "001")
+      } else if(input$pick2 == "002"){
+        data2 <- dat1 %>% filter(district == "002")
+      } else if(input$pick2 == "003"){
+        data2 <- dat1 %>% filter(district == "003")
+      } else if(input$pick2 == "004"){
+        data2 <- dat1 %>% filter(district == "004")
+      } else if(input$pick2 == "005"){
+        data2 <- dat1 %>% filter(district == "005")
+      } else if(input$pick2 == "006"){
+        data2 <- dat1 %>% filter(district == "006")
+      } else if(input$pick2 == "007"){
+        data2 <- dat1 %>% filter(district == "007")
+      } else if(input$pick2 == "008"){
+        data2 <- dat1 %>% filter(district == "008")
+      } else if(input$pick2 == "009"){
+        data2 <- dat1 %>% filter(district == "009")
+      } else if(input$pick2 == "010"){
+        data2 <- dat1 %>% filter(district == "010")
+      } else if(input$pick2 == "011"){
+        data2 <- dat1 %>% filter(district == "011")
+      } else if(input$pick2 == "012"){
+        data2 <- dat1 %>% filter(district == "012")
+      } else if(input$pick2 == "013"){
+        data2 <- dat1 %>% filter(district == "013")
+      } else if(input$pick2 == "014"){
+        data2 <- dat1 %>% filter(district == "014")
+      } else if(input$pick2 == "015"){
+        data2 <- dat1 %>% filter(district == "015")
+      } else if(input$pick2 == "016"){
+        data2 <- dat1 %>% filter(district == "016")
+      } else if(input$pick2 == "017"){
+        data2 <- dat1 %>% filter(district == "017")
+      } else if(input$pick2 == "018"){
+        data2 <- dat1 %>% filter(district == "018")
+      } else if(input$pick2 == "019"){
+        data2 <- dat1 %>% filter(district == "019")
+      } else if(input$pick2 == "020"){
+        data2 <- dat1 %>% filter(district == "020")
+      } else if(input$pick2 == "021"){
+        data2 <- dat1 %>% filter(district == "021")
+      } else if(input$pick2 == "022"){
+        data2 <- dat1 %>% filter(district == "022")
+      } else if(input$pick2 == "023"){
+        data2 <- dat1 %>% filter(district == "023")
+      } else if(input$pick2 == "024"){
+        data2 <- dat1 %>% filter(district == "024")
+      } else if(input$pick2 == "025"){
+        data2 <- dat1 %>% filter(district == "025")
+      }})
+   output$picker1 <- renderUI({
+    pickerInput(inputId = 'pick2', 
+                label = 'Select district', 
+                choices = c("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025"),
+                options = list(`actions-box` = TRUE),multiple = F)
+   })
+   value <- reactive({ input$pick2 })
+   output$table1 <- DT::renderDataTable({datasetInput4()})
+   output$plot1 <- renderPlot({
+     datasetInput3()
+   })}
+
+
+shinyApp(ui, server)
+
+
+
+
+
+
+```
