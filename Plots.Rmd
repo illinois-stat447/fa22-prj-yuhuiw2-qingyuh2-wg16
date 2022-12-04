@@ -1,0 +1,90 @@
+---
+title: "Plots"
+output: html_document
+date: "2022-12-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Libraries
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(jsonlite)
+library(readr)
+crime = read_csv("Crimes_-_2001_to_Present.csv")
+unemployment = read_csv("ILCOOK1URN.csv")
+```
+
+```{r}
+crime = as.tibble(crime)
+unemployment = as.tibble(unemployment)
+
+unemployment$DATE = format(as.Date(unemployment$DATE, format="%Y-%d-%m"),"%Y")
+crime$Year = as.character(crime$Year)
+```
+
+##Plot by crime type
+```{r}
+ggplot(crime, aes(`Primary Type`, fill = `Primary Type`)) +
+  geom_bar() +
+  theme_classic() +
+  theme(legend.key.size = unit(5, 'mm'),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+##Plot by arrest
+```{r}
+dfarrest = crime |>
+  group_by(Arrest) |>
+  summarise(count = n())
+
+ggplot(crime, aes(Arrest, fill = Arrest)) +
+  geom_bar() +
+  theme_classic()
+```
+
+##Plot by domestic
+```{r}
+ggplot(crime, aes(Domestic, fill = Domestic)) +
+  geom_bar() +
+  theme_classic()
+```
+
+##Plot by district
+```{r}
+ggplot(crime, aes(District, fill = District)) +
+  geom_bar() +
+  theme_classic()
+```
+
+##Unemployment Rate and Number of Cases (2012-2022)
+```{r}
+newun = unemployment |>
+  filter(DATE >= 2012) |>
+  group_by(DATE) |>
+  summarise(Mean = mean(ILCOOK1URN))
+
+newcrime = crime |>
+  rename(DATE = Year) |>
+  filter(DATE >= 2012) |>
+  group_by(DATE) |>
+  summarise(n = n())
+
+new = as_tibble(data.frame(Year = newcrime$DATE,
+                 Cases = newcrime$n,
+                 Unemployment = newun$Mean))
+
+ggplot(new) +
+  geom_segment(aes(x = Year, y = Cases, xend = factor(Year), yend = 0), size = 8, colour = "grey") + 
+  scale_y_continuous(name = "Number of Events",
+                     sec.axis = sec_axis(trans = ~ . / 28000, name = "Unemployment Rate (%)")) +
+  geom_line(aes(x = factor(Year), y = Unemployment * 28000, group = 1), colour = "red") +
+  ggtitle("Unemployment Rate and Number of Cases (2012-2022)") +
+  theme_classic()
+```
+
+
