@@ -1,0 +1,315 @@
+---
+title: "Analysis on Chicago Crime"
+author: Wenxuan Gu(), Qingyu Huang(), Yuhui Wang(yuhuiw2)
+subtitle: STAT 447 Final Project
+output: html_document
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Project Outline
+
+1.  Visualization of the criminal cases after grouping by the different columns.\
+2.  Analysis the connection between criminal cases and unemployment rates.\
+3.  Analysis the connection between criminal cases and population changes.\
+4.  
+
+### Libraries
+```{r}
+library(tidyverse)
+library(httr)
+library(jsonlite)
+library(shiny)
+library(shinydashboard)
+library(shinyjs)
+library(shinyWidgets)
+library(leaflet)
+library(data.table)
+```
+
+\bigskip
+
+### Data Wrangling
+
+\bigskip
+
+### Data Summary
+```{r}
+
+```
+
+\bigskip
+
+### Visualizations
+```{r,eval = FALSE}
+ggplot(crime, aes(`Primary Type`, fill = `Primary Type`)) +
+  geom_bar() +
+  theme_classic() +
+  theme(legend.key.size = unit(5, 'mm'),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ggtitle("Crime by type")
+```
+
+### Unemployment and Crimes
+
+### Population and Crimes
+
+### Part 3
+
+### Shiny App
+#### Latest data access
+```{r,warning=FALSE,message=FALSE,eval=FALSE}
+library(httr)
+library(shinydashboard)
+library(shiny)
+library(data.table)
+library(shinyjs)
+library(shinyWidgets)
+library(tidyverse)
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Access data",tabName = "a"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "a",DT::dataTableOutput("table_names"))
+      )))
+
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")}
+
+
+shinyApp(ui, server)
+```
+![](shinydata.png)
+
+<font size="3"> This Shinyapp allows user to access latest data of criminal information in Chicago from the government website.We use api connection to link the data from Internet into our Shinyapp. \
+(api connection:"https://data.cityofchicago.org/resource/crimes.json")</font> \
+
+#### Filter the data and visualization Shinyapp
+```{r,warning=FALSE,message=FALSE,eval = FALSE}
+library(httr)
+library(shinydashboard)
+library(shiny)
+library(data.table)
+library(shinyjs)
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Plot your file in barchart",tabName = "c"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "c",sidebarLayout(
+        sidebarPanel(
+          uiOutput("picker1"),
+          actionButton("view6", "View Selection"),
+          uiOutput("picker"),
+          actionButton("view5", "View Selection")
+        ),mainPanel(DT::dataTableOutput("table1"),plotOutput("plot1"))
+      )
+      ))))
+
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")
+   datasetInput3 <- eventReactive(input$view5,{
+     data2 <- datasetInput4()
+    if (input$pick == "primary_type"){
+      return(ggplot(data2,aes(primary_type,fill = primary_type)) + geom_bar()+theme_classic()+ theme(legend.key.size = unit(5,"mm"),axis.text.x = element_text(angle = 45,vjust =1,hjust = 1)))
+    } else if (input$pick == "arrest")
+    {
+      return(ggplot(data2,aes(arrest,fill = arrest)) + geom_bar()+theme_classic())
+    } else if (input$pick == "domestic")
+    {
+      return(ggplot(data2,aes(domestic,fill = domestic)) + geom_bar()+theme_classic())
+    } else if (input$pick == "district")
+    {
+      return(ggplot(data2,aes(district,fill = district)) + geom_bar()+theme_classic())
+    } else if (input$pick == "location_description")
+    {
+      return(ggplot(data2,aes(location_description,fill = location_description)) + geom_bar()+theme_classic())
+    }
+   })
+   output$picker <- renderUI({
+    pickerInput(inputId = 'pick', 
+                label = 'Choose column you want to see', 
+                choices = c("primary_type","arrest","domestic","district","location_description"),
+                options = list(`actions-box` = TRUE),multiple = F)
+   })
+   datasetInput4 <- eventReactive(input$view6,{
+     dat1 <- result()
+      if(input$pick2 == "001"){
+        data2 <- dat1 %>% filter(district == "001")
+      } else if(input$pick2 == "002"){
+        data2 <- dat1 %>% filter(district == "002")
+      } else if(input$pick2 == "003"){
+        data2 <- dat1 %>% filter(district == "003")
+      } else if(input$pick2 == "004"){
+        data2 <- dat1 %>% filter(district == "004")
+      } else if(input$pick2 == "005"){
+        data2 <- dat1 %>% filter(district == "005")
+      } else if(input$pick2 == "006"){
+        data2 <- dat1 %>% filter(district == "006")
+      } else if(input$pick2 == "007"){
+        data2 <- dat1 %>% filter(district == "007")
+      } else if(input$pick2 == "008"){
+        data2 <- dat1 %>% filter(district == "008")
+      } else if(input$pick2 == "009"){
+        data2 <- dat1 %>% filter(district == "009")
+      } else if(input$pick2 == "010"){
+        data2 <- dat1 %>% filter(district == "010")
+      } else if(input$pick2 == "011"){
+        data2 <- dat1 %>% filter(district == "011")
+      } else if(input$pick2 == "012"){
+        data2 <- dat1 %>% filter(district == "012")
+      } else if(input$pick2 == "013"){
+        data2 <- dat1 %>% filter(district == "013")
+      } else if(input$pick2 == "014"){
+        data2 <- dat1 %>% filter(district == "014")
+      } else if(input$pick2 == "015"){
+        data2 <- dat1 %>% filter(district == "015")
+      } else if(input$pick2 == "016"){
+        data2 <- dat1 %>% filter(district == "016")
+      } else if(input$pick2 == "017"){
+        data2 <- dat1 %>% filter(district == "017")
+      } else if(input$pick2 == "018"){
+        data2 <- dat1 %>% filter(district == "018")
+      } else if(input$pick2 == "019"){
+        data2 <- dat1 %>% filter(district == "019")
+      } else if(input$pick2 == "020"){
+        data2 <- dat1 %>% filter(district == "020")
+      } else if(input$pick2 == "021"){
+        data2 <- dat1 %>% filter(district == "021")
+      } else if(input$pick2 == "022"){
+        data2 <- dat1 %>% filter(district == "022")
+      } else if(input$pick2 == "023"){
+        data2 <- dat1 %>% filter(district == "023")
+      } else if(input$pick2 == "024"){
+        data2 <- dat1 %>% filter(district == "024")
+      } else if(input$pick2 == "025"){
+        data2 <- dat1 %>% filter(district == "025")
+      }})
+   output$picker1 <- renderUI({
+    pickerInput(inputId = 'pick2', 
+                label = 'Select district', 
+                choices = c("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025"),
+                options = list(`actions-box` = TRUE),multiple = F)
+   })
+   value <- reactive({ input$pick2 })
+   output$table1 <- DT::renderDataTable({datasetInput4()})
+   output$plot1 <- renderPlot({
+     datasetInput3()
+   })}
+
+
+shinyApp(ui, server)
+
+
+
+
+
+
+```
+<font size="4"> Select which district you want </font> 
+![](districtselect.png)
+<font size="4"> Select which column you want </font> 
+![](selectcolumn.png)
+<font size="4"> The Tableoutput of your selection</font> 
+![](districtoutput.png)
+<font size="4"> The plot output of your selection </font> 
+![](plotoutput.png)
+ \
+ \
+<font size="3"> In this Shinyapp, we allow users to select the district from "001" to "025" which is defined by police department and select which column of data they want to see. Then the Shinyapp will produce the filtered table based on users selection. Also, we provide the visualization of the table to let users have a better and clear view of data they want. Based on these information provided by Shinyapp and our analysis above, we hope users can have some ideas about the current situation and avoid some high risk areas. Data in this app also connect to the Internet, so everything inside is up to date.</font> \
+ \
+ 
+#### Latest data access
+```{r,warning=FALSE,message=FALSE,eval = FALSE}
+library(httr)
+library(shinydashboard)
+library(shiny)
+library(data.table)
+library(shinyjs)
+library(shinyWidgets)
+library(tidyverse)
+library(leaflet)
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Access data",tabName = "a"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "a",leafletOutput("Mapofcrime"))
+      )))
+
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")
+   output$Mapofcrime <- renderLeaflet({
+     crimemap<- result()
+     crimemap$longitude <- as.numeric(crimemap$longitude)
+     crimemap$latitude <- as.numeric(crimemap$latitude) 
+     leaflet(data = crimemap[1:1000,]) %>% addTiles() %>%
+  addMarkers(~longitude, ~latitude,clusterOptions = markerClusterOptions())
+   })
+   }
+
+
+shinyApp(ui, server)
+
+
+
+```
+![](mapoutput.png)
+![](cluster2.png)
+![](cluster3.png)
+
+
+<font size="3">In this Shinyapp,we create a live map which will update data everyday from the Internet and mark the lastest crime on the map. We filter the first 1000 rows of latest data from Internet, so the map will not be messed up by large number of data. Also we use clustering markers in the map. This can increase users' experience and the information on it will be more directed. Users also can zoom in or zoom out to see the precise point on the map. We hope this map can help users notice which area is high risk area.</font> \
+
+### Conclusion
+
+
