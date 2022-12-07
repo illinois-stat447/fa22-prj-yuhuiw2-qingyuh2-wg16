@@ -7,6 +7,7 @@ output:
     toc: yes
     fig_caption: yes
     number_sections: yes
+runtime: shiny
 ---
 
 
@@ -57,20 +58,18 @@ pacman::p_load(tidyverse, httr,jsonlite,shiny,shinydashboard,shinyjs,shinyWidget
 First, we load the data from the csv files and format the columns to be the appropriate type for further operations.Then we filter out the cases which happened after 2012. We also merged the similar crime types to reduce the complexity of our data set.
 </font>
 
-```{r,eval = FALSE}
+```{r}
 crime = read.csv("Crimes_-_2001_to_Present.csv")
 unemployment = read.csv("ILCOOK1URN.csv")
-
 crime <- as_tibble(crime)
 unemployment <- as_tibble(unemployment)
 crime$Year <- as.character(crime$Year)
 crime$Latitude <- as.numeric(crime$Latitude)
 crime$Longitude <- as.numeric(crime$Longitude)
+crime$District <- as.character(crime$District)
 unemployment$DATE <- format(as.Date(unemployment$DATE, format="%Y-%d-%m"),"%Y")
-
 crime <- crime |>
   filter(Year >= 2012)
-
 crime$Primary.Type[crime$Primary.Type == "ASSAULT" |
                         crime$Primary.Type == "CRIM SEXUAL ASSAULT" |
                         crime$Primary.Type == "CRIMINAL SEXUAL ASSAULT"] <- "ASSAULT"
@@ -92,15 +91,13 @@ crime$Primary.Type[crime$Primary.Type == "MOTOR VEHICLE THEFT" |
 crime$Primary.Type[crime$Primary.Type == "SEX OFFENSE" |
                       crime$Primary.Type == "OTHER OFFENSE"|
                       crime$Primary.Type == "OFFENSE INVOLVING CHILDREN" ] <- "OFFENSE"
-## Data Summary
-as.data.frame(colnames(crime))
 ```
 
 ## Visualizations
 
 ### By Crime Type
 
-```{r,eval = FALSE}
+```{r}
 ggplot(crime, aes(Primary.Type, fill = Primary.Type)) +
   geom_bar() +
   theme_classic() +
@@ -112,6 +109,7 @@ ggplot(crime, aes(Primary.Type, fill = Primary.Type)) +
   scale_y_continuous(labels = scales::comma) +
   ggtitle("Crime by Type")
 ```
+![](1.png)
 
 <font size="3">
 From the graph above, we can clearly see that theft is the type of crime which happened the most after 2012. Battery and criminal also had really high amounts as compared to the other types of crimes. Many other types of crime such as human trafficking and non criminal all had extremely low quantities.
@@ -120,7 +118,7 @@ From the graph above, we can clearly see that theft is the type of crime which h
 
 ### Plot by District
 
-```{r,eval = FALSE}
+```{r}
 ggplot(crime, aes(District, fill = District)) +
   geom_bar() +
   theme_classic() +
@@ -131,7 +129,7 @@ ggplot(crime, aes(District, fill = District)) +
   ylab("Count")
 ```
 
-```{r,eval = FALSE}
+```{r}
 crime |>
   group_by(Block) |>
   summarise(Count = n()) |>
@@ -146,7 +144,7 @@ More precisely, according to the crime cases after grouping by block, N State St
 
 ### Plot by Arrest
 
-```{r,eval = FALSE}
+```{r}
   dfarrest <- crime |>
     group_by(Arrest) |>
     summarise(count = n()) |>
@@ -176,21 +174,18 @@ This pie chart is based on if the individual(s) who committed the crime was arre
 
 ## Unemployment and Crimes
 
-```{r,eval = FALSE}
+```{r, warning = FALSE}
 newun <- unemployment |>
   filter(DATE >= 2012) |>
   group_by(DATE) |>
   summarise(Mean = mean(ILCOOK1URN))
-
 newcrime <- crime |>
   rename(DATE = Year) |>
   group_by(DATE) |>
   summarise(n = n())
-
 newdf <- as_tibble(data.frame(Year = newcrime$DATE,
                            Cases = newcrime$n,
                            Unemployment = newun$Mean))
-
 ggplot(newdf) +
   geom_segment(aes(x = Year, y = Cases, xend = factor(Year), yend = 0), size = 8, colour = "grey") + 
   scale_y_continuous(name = "Number of Events",
@@ -199,10 +194,9 @@ ggplot(newdf) +
   geom_line(aes(x = factor(Year), y = Unemployment * 28000, group = 1), colour = "red") +
   ggtitle("Unemployment Rate and Number of Cases (2012-2022)") +
   theme_classic() +
-  theme(plot.title = element_text(size=22, hjust = 0.5),
+  theme(plot.title = element_text(size = 22, hjust = 0.5),
         legend.box.background = element_rect(colour = "black"))
 ```
-
 
 <font size="3">
 The diagram above shows the relationship between crime cases and unemployment. The y-axis on the left refers to the amount of crime cases and the right one refers to the unemployment rate. We can clearly see that the number of crime cases is positively related with the unemployment rate, except for the year 2020 in which the Covid-19 pademic happened which gave the economic a big strike.
@@ -210,10 +204,9 @@ The diagram above shows the relationship between crime cases and unemployment. T
 
 ## Season and Crimes
 
-```{r,eval = FALSE}
+```{r}
 Month <- str_extract(crime$Date, "\\d+")
-dfmonth1 <- as.data.frame(dfmonth)
-
+dfmonth1 <- as.data.frame(Month)
 ggplot(dfmonth1) +
   geom_bar(aes(Month, fill = Month)) +
   theme_classic() +
@@ -223,7 +216,6 @@ ggplot(dfmonth1) +
   theme(plot.title = element_text(size=22, hjust = 0.5),
         legend.box.background = element_rect(colour = "black"))
 ```
-
 
 <font size="3">
 We extract the months in which the crime cases happened and form a new data frame. Then we plot the number of crime cases by month. The plot clearly shows that summer is the season that had the most number of cases and winter is the season which had the least number of cases.
@@ -239,7 +231,7 @@ We do a similar step like the first time , but this time cleaning more deeply fo
 
 ### Loading and tidying up the data
 
-```{r,eval = FALSE}
+```{r}
 ##Import Full data
 data <- read.csv("Crimes_-_2001_to_Present.csv")
 ## subset data for 2012 to 2022
@@ -254,7 +246,7 @@ glimpse(data2012)
 ```
 
 ### Checking Missing values
-```{r,eval = FALSE}
+```{r}
 ## Over all missing values
 sum(is.na(data2012))
 ## Checking missing values in each column
@@ -265,7 +257,7 @@ sapply(data2012, function (x) sum(is.na(x)))
 We do find missing values are there in four columns:Community.Areas, Census.Tracts, Police.Beats, and Distrct. So we replace the missing values with median(because its discrete data).
 </font>
 
-```{r,eval = FALSE}
+```{r}
 ## Community Areas
 data2012$Community.Areas <- ifelse(is.na(data2012$Community.Areas),
                                    median(data2012$Community.Areas,na.rm = T),
@@ -294,7 +286,7 @@ There are no more missing value among this data.
 We can use dummies as numeric variable, and each category can be treated as dummy
 </font>
 
-```{r,eval = FALSE}
+```{r}
 ## Convert Arrest to dummy (True = 1, and False = 0)
 data2012$Arrest <- ifelse(data2012$Arrest == "false",0,1)
 ## Convert Domestic to dummy (True = 1, and False = 0)
@@ -330,7 +322,7 @@ data2012 <- data2012 %>% fastDummies::dummy_cols(select_columns = "Primary.Type"
 
 In order to detect the crime in districts, we need to use K-means.
 
-```{r,eval = FALSE}
+```{r}
 ## Clustering
 ## First there is need to scale data, to equalize magnitude
 scaled_data <- data2012[,-c(1,2,6,7)]
@@ -338,7 +330,7 @@ scaled_data <- data2012[,-c(1,2,6,7)]
 ggcorr(scaled_data,size=2,hjust=1,vjust=1)
 ```
 
-```{r,fig.align='center',fig.height=5,fig.width=6,eval = FALSE}
+```{r,fig.align='center',fig.height=5,fig.width=6}
 ## K-means
 # Trying Kmeans with different number of K values
 k2 <- kmeans(scaled_data, centers = 2, nstart = 25)
@@ -360,7 +352,7 @@ We have tried different values of k from 2 to 5, and applied k-means on that dat
 
 ### Checking outputs for K=2
 
-```{r,eval = FALSE}
+```{r}
 ## Plot CLuster mean for each variable
 clust_means <- as.data.frame(k2$centers) %>%
   pivot_longer(1:26,names_to = "Variable",values_to = "Cluster1 Mean") %>%
@@ -370,7 +362,7 @@ cbind.data.frame(clust_means[1:26,],`Cluster2 Mean`=clust_means$`Cluster1 Mean`[
 
 ### Comparing districts with clusters
 
-```{r,eval = FALSE}
+```{r}
 ## Adding cluster variable in original data
 data2012$cluster <- k2$cluster
 ## Comparing clusters with District
@@ -383,7 +375,7 @@ It shows that there are 91 times crime happened in cluster 1 of district 1,and 1
 
 In order to predict number of crimes in the next 100 days, we utilize Time Series Model to achieve it.
 
-```{r,eval = FALSE}
+```{r}
 data <- data %>% filter(Year>2011)
 data_time <- data %>% 
   dplyr::select(Date) %>% ## Select date variable
@@ -396,7 +388,7 @@ glimpse(data_time)
 
 ### Creating and Plotting Timeseries
 
-```{r,eval = FALSE}
+```{r}
 ## Data
 Crime_ts <- ts(data_time$No.of.Crimes[-1573], frequency = 365,start=c(2012,01,01))
 ## Time Plot
@@ -409,7 +401,7 @@ The series looks stationary, but there is need to confirm stationary through ADF
 </font>
 
 ### ADF Test
-```{r,eval = FALSE}
+```{r}
 adf.test(Crime_ts)
 ```
 
@@ -419,7 +411,7 @@ The Test p-value = 0.01 (less than 0.05), which shows that the null hypothesis o
 
 ### Exploring the Lag order through ACF, and PACF
 
-```{r,eval = FALSE}
+```{r}
 ## For combining Plots
 par(mfrow=c(1,2), mar = c(5, 4, 4, 2) + 0.1)
 ## ACF
@@ -431,7 +423,7 @@ pacf(Crime_ts,main="Crime PACF")
 It can be observed that the spikes are going outside the limits, at each seasonal lag in proper pattern. Hence, there is a non-zero correlation at seasonal lags, and showing a seasonal patteren. We can use auto.arima function to fit our correct model.
 </font>
 
-```{r,eval = FALSE}
+```{r}
 ## Fitting model
 Model_Arima <- auto.arima(Crime_ts)
 ## Model summary
@@ -448,7 +440,7 @@ So, the Auto.arima suggested a better model, but not suggested a seasonal model.
 The major purpose of the time-series was to forecast the number of crimes for future. Hence, we have Model fitted with Auto.arima. There is need to forecast, and we are going to for next 100 days.
 </font>
 
-```{r,eval = FALSE}
+```{r}
 ## Forecasting
 Forecast_crime <- forecast(Model_Arima,h=100)
 ## Print forecasting values
@@ -456,7 +448,7 @@ Forecast_crime
 ```
 
 ## Plotting forecasted values
-```{r,eval = FALSE}
+```{r}
 Crime_ts %>% autoplot() +
   autolayer(Forecast_crime) +
   theme_bw()
@@ -470,7 +462,7 @@ From the dataframe above, 'Point Forecast' shows us the prediction number of cri
 
 ## Latest data access
 
-```{r,warning=FALSE,message=FALSE,eval=FALSE}
+```{r, warning=FALSE, message=FALSE, eval=FALSE}
 library(httr)
 library(shinydashboard)
 library(shiny)
@@ -512,7 +504,7 @@ This Shinyapp allows user to access latest data of criminal information in Chica
 
 ## Filter the data and visualization Shinyapp
 
-```{r,warning=FALSE,message=FALSE,eval = FALSE}
+```{r, warning=FALSE, message=FALSE}
 apiKey <- "XXXXXXXXXXX"
 result <- GET("https://data.cityofchicago.org/resource/crimes.json",
               add_headers(Authorization = paste("Key", apiKey)))
@@ -641,7 +633,7 @@ In this Shinyapp, we allow users to select the district from "001" to "025" whic
 
 ## Latest data access
 
-```{r,warning=FALSE,message=FALSE,eval = FALSE}
+```{r, warning=FALSE, message=FALSE}
 apiKey <- "XXXXXXXXXXX"
 result <- GET("https://data.cityofchicago.org/resource/crimes.json",
               add_headers(Authorization = paste("Key", apiKey)))
