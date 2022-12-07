@@ -328,7 +328,7 @@ data2012 <- data2012 %>% fastDummies::dummy_cols(select_columns = "Primary.Type"
 
 ## Clustering and K-means
 
-After cleaning all the missing values, we can start clustering data.
+In order to detect the crime in districts, we need to use K-means.
 
 ```{r,eval = FALSE}
 ## Clustering
@@ -376,6 +376,8 @@ data2012$cluster <- k2$cluster
 ## Comparing clusters with District
 table(data2012$District,data2012$cluster)
 ```
+
+It shows that there are 91 times crime happened in cluster 1 of district 1,and 137237 times classified cluster 2, which add together becomes 137328. District 2 will be 124456,District 3 will be 165585, District 4 will be 128739, District 6 will be177211, District 7 will be 157593,District 8 will be 183847,District 9 will be 132126,District 10 will be 131960,District 11 will be 199145,District 12 will be 142589,District 14 will be 101692,District 15 will be119203,District 16 will be 99285,District 17 will be 81432,District 20 will be 50287,District 22 will be 93387,District 24 will be 85464,District 25 will be 156177,District 31 will be 84.So District 11 has the highest crime.
 
 ## Time Series
 
@@ -686,7 +688,7 @@ In this Shinyapp,we create a live map which will update data everyday from the I
 
 1. For this project, after EDA the crime data and unemployment data, we found that the unemployment rate seems to have some influence,and the month also seems to have some influence, with the winter months of January-April having the lowest crime rates, and the summer months of May-August having the highest crime rates. But overall, the crime rate in Chicago generally around 200,000. What's more, the most frequent "crime" in Chicago are theft while the second most are Battery. Most of the crime happens in  011, 006, and 008.Therefore, to ensure safety when staying in Chicago, people need to be careful of these three districts, as well as thieves on the street.\
 
-2. Overall, the number of crimes has shown a downward trend since 2012. In order to analyze which district have more crimes, we use k-means. Also, for further predicting crimes, we use time series model, which shows that the number of crimes that keeps going between 600-700 in the next 100 days.It's a reminder to the people in Chicago to stay safe and alert to the dangers.
+2. Overall, the number of crimes has shown a downward trend since 2012. In order to analyze which district have more crimes, we use k-means. It shows that District 11 has the highest crimes while District 31 has the lowest crimes. Also, for further predicting crimes, we use time series model, which shows that the number of crimes that keeps going between 600-700 in the next 100 days.It's a reminder to the people in Chicago to stay safe and alert to the dangers.
 
 
 </font>
