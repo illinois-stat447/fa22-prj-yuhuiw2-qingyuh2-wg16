@@ -13,6 +13,11 @@ Analysis on Chicago Crime (2012-2022)
 # Presentation Link
 https://uofi.box.com/s/o3o8ewbq5xsfyptblj9653a10yfi0buo
 
+# Final Submission
+[pdf](https://github.com/illinois-stat447/fa22-prj-yuhuiw2-qingyuh2-wg16/blob/main/final_submission/finalproject.pdf)
+
+[rmd](https://github.com/illinois-stat447/fa22-prj-yuhuiw2-qingyuh2-wg16/blob/main/final_submission/finalproject.Rmd)
+
 # csv Link
 [Link to the crime csv file](https://data.cityofchicago.org/api/views/ijzp-q8t2/rows.csv?accessType=DOWNLOAD&bom=true&query=select+*)
 
