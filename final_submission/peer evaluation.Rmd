@@ -14,7 +14,7 @@ all contributed to this project in different ways. Every group member shares inc
 ideas and thoughts at every stage of this project. 
 
 Wenxuan Gu finished the shiny app part, and he also help Yuhui Wang to do the visualization. 
-Yuhui Wang did the EDA and influential factors part, and help us to make a ppt. 
+Yuhui Wang did the visualization and analyze influential factors, and help us to make a ppt. 
 Both Wenxuan Gu and Yuhui Wang together to upload our file to github. 
 Qingyu Huang did the data wrangling and modeling parts, and help to organize the final report, 
 like the format and conclusion.
