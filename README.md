@@ -10,4 +10,8 @@ Analysis on Chicago Crime (2012-2022)
 4. We will also conduct prediction models based on our data.
 5. Finally, we hope our results will provide some useful infromation for the chicago crime case.
 
+# Presentation Link
 https://uofi.box.com/s/o3o8ewbq5xsfyptblj9653a10yfi0buo
+
+# csv Link
+https://data.cityofchicago.org/api/views/ijzp-q8t2/rows.csv?accessType=DOWNLOAD&bom=true&query=select+*
