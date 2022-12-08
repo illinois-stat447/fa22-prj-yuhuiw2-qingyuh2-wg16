@@ -1,0 +1,81 @@
+---
+title: "Analysis on Chicago Crime"
+author: Wenxuan Gu(), Qingyu Huang(), Yuhui Wang(yuhuiw2)
+subtitle: STAT 447 Final Project
+output: html_document
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Project Outline
+
+1.  Visualization of the criminal cases after grouping by the different columns.\
+2.  Analysis the connection between criminal cases and unemployment rates.\
+3.  Analysis the connection between criminal cases and population changes.\
+4.  
+
+### Libraries
+```{r}
+library(tidyverse)
+library(httr)
+library(jsonlite)
+library(shiny)
+library(shinydashboard)
+library(shinyjs)
+library(shinyWidgets)
+library(leaflet)
+library(data.table)
+```
+
+\bigskip
+
+### Data Wrangling
+```{r}
+crime = read_csv("Crimes_-_2001_to_Present.csv")
+unemployment = read_csv("ILCOOK1URN.csv")
+
+crime |>
+  filter(Year >= 2012)
+
+crime = as.tibble(crime)
+unemployment = as.tibble(unemployment)
+crime$Year = as.character(crime$Year)
+crime$Latitude = as.numeric(crime$Latitude)
+crime$Longitude = as.numeric(crime$Longitude)
+unemployment$DATE = format(as.Date(unemployment$DATE, format="%Y-%d-%m"),"%Y")
+```
+
+\bigskip
+
+### Data Summary
+```{r}
+
+```
+
+\bigskip
+
+### Visualizations
+```{r}
+ggplot(crime, aes(`Primary Type`, fill = `Primary Type`)) +
+  geom_bar() +
+  theme_classic() +
+  theme(legend.key.size = unit(5, 'mm'),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ggtitle("Crime by type")
+```
+
+### Unemployment and Crimes
+
+### Population and Crimes
+
+### Part 3
+
+### Shiny App
+
+### Conclusion
+
+
+

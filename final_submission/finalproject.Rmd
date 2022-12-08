@@ -1,0 +1,716 @@
+---
+title: "Analysis on Chicago Crime (2012-2022)"
+author: "Wenxuan Gu(wg16), Qingyu Huang(qingyuh2), Yuhui Wang(yuhuiw2)"
+subtitle: STAT 447 Final Project
+output: 
+  pdf_document: 
+    toc: yes
+    fig_caption: yes
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PROJECT DESCRIPTION
+
+## Background
+
+<font size="3">
+As a city developed by Transport Hub, all kinds of news tell us a fact: Chicago uses prosperity to conceal blood. On November 9, 2021, a Chinese student studying at the University of Chicago died in a shooting, and many similar incidents happened later. Not only did the residents panic, but also the international students questioned the city's safety. So the purpose of this project is to analyze the real crime situation in Chicago.
+</font>
+
+## Understanding data
+
+<font size="3">
+There are two tables of original data: Crimes_-_2001_to_Present and ILCOOK1URN.\
+1.  Crimes_-_2001_to_Present: It stores basic crime data and includes 7681524 observations and 30 variables.\
+2.  ILCOOK1URN: It stores unemployment data and includes 394 observations and 2 variables.\
+</font>
+
+## Framework
+
+<font size="3">
+1.  EDA.\
+2.  Analysis the Influential factors with crime.\
+4.  Modeling.\
+5.  Shiny APP.\
+</font>
+
+## Libraries
+
+```{r, message = FALSE, warning = FALSE}
+#Loading packages
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, httr,jsonlite,shiny,shinydashboard,shinyjs,shinyWidgets,leaflet,data.table,car,sjPlot,gridExtra,factoextra,knitr,kableExtra,scales,fastDummies,cluster,GGally,car,sjPlot,gridExtra,factoextra,
+               ggfortify,zoo,plotly,xts,tseries,forecast)
+```
+
+
+# EDA
+
+## Simply Data Wrangling
+
+<font size="3">
+First, we load the data from the csv files and format the columns to be the appropriate type for further operations.Then we filter out the cases which happened after 2012. We also merged the similar crime types to reduce the complexity of our data set.
+</font>
+
+```{r}
+crime = read.csv("Crimes_-_2001_to_Present.csv")
+unemployment = read.csv("ILCOOK1URN.csv")
+crime <- as_tibble(crime)
+unemployment <- as_tibble(unemployment)
+crime$Year <- as.character(crime$Year)
+crime$Latitude <- as.numeric(crime$Latitude)
+crime$Longitude <- as.numeric(crime$Longitude)
+crime$District <- as.character(crime$District)
+unemployment$DATE <- format(as.Date(unemployment$DATE, format="%Y-%d-%m"),"%Y")
+crime <- crime |>
+  filter(Year >= 2012)
+crime$Primary.Type[crime$Primary.Type == "ASSAULT" |
+                        crime$Primary.Type == "CRIM SEXUAL ASSAULT" |
+                        crime$Primary.Type == "CRIMINAL SEXUAL ASSAULT"] <- "ASSAULT"
+crime$Primary.Type[crime$Primary.Type == "NON-CRIMINAL" |
+                      crime$Primary.Type == "NON - CRIMINAL" |
+                      crime$Primary.Type == "NON-CRIMINAL (SUBJECT SPECIFIED)"] <- "NON_CRIMINAL"
+crime$Primary.Type[crime$Primary.Type == "CONCEALED CARRY LICENSE VIOLATION" |
+                      crime$Primary.Type == "LIQUOR LAW VIOLATION" |
+                      crime$Primary.Type == "PUBLIC PEACE VIOLATION"|
+                      crime$Primary.Type == "OTHER NARCOTIC VIOLATION"|
+                      crime$Primary.Type == "INTERFERENCE WITH PUBLIC OFFICER"|
+                      crime$Primary.Type == "PUBLIC INDECENCY"|
+                      crime$Primary.Type == "RITUALISM"|
+                      crime$Primary.Type == "WEAPONS VIOLATION"] <- "VIOLATION"
+crime$Primary.Type[crime$Primary.Type == "CRIMINAL DAMAGE" |
+                      crime$Primary.Type == "CRIMINAL TRESPASS"] <- "CRIMINAL"
+crime$Primary.Type[crime$Primary.Type == "MOTOR VEHICLE THEFT" |
+                      crime$Primary.Type == "THEFT"] <- "THEFT"
+crime$Primary.Type[crime$Primary.Type == "SEX OFFENSE" |
+                      crime$Primary.Type == "OTHER OFFENSE"|
+                      crime$Primary.Type == "OFFENSE INVOLVING CHILDREN" ] <- "OFFENSE"
+```
+
+## Visualizations
+
+### By Crime Type
+
+```{r}
+ggplot(crime, aes(Primary.Type, fill = Primary.Type)) +
+  geom_bar() +
+  theme_classic() +
+  theme(legend.key.size = unit(5, 'mm'),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        plot.title = element_text(size=22, hjust = 0.5),
+        legend.box.background = element_rect(colour = "black")) +
+  ylab("Count") +
+  scale_y_continuous(labels = scales::comma) +
+  ggtitle("Crime by Type")
+```
+
+<font size="3">
+From the graph above, we can clearly see that theft is the type of crime which happened the most after 2012. Battery and criminal also had really high amounts as compared to the other types of crimes. Many other types of crime such as human trafficking and non criminal all had extremely low quantities.
+</font>
+
+### Plot by District
+
+```{r}
+ggplot(crime, aes(District, fill = District)) +
+  geom_bar() +
+  theme_classic() +
+  ggtitle("Crime by District") +
+  theme(plot.title = element_text(size=22, hjust = 0.5),
+  legend.box.background = element_rect(colour = "black")) +
+  scale_y_continuous(labels = scales::comma) +
+  ylab("Count")
+```
+
+```{r}
+crime |>
+  group_by(Block) |>
+  summarise(Count = n()) |>
+  arrange(desc(Count)) |>
+  head(10)
+```
+
+<font size="3">
+From the plot above, we can observe that 011, 006, and 008 are the three districts with the most crime cases, while 020 is the district with the least cases. Referring to the map of police districts, we can see that southern areas had relatively more crime cases as compared to the northern areas.\
+More precisely, according to the crime cases after grouping by block, N State Street seems to be the block with the most cases while taking 2 places in the top 4 ranking. Also, the blocks with the most cases are either located in the urban area or in the transportation facilities area which are both places where large flows of people exist. We can conclude that crimes are more likely to happen in locations where is crowded.
+</font>
+
+### Plot by Arrest
+
+```{r}
+  dfarrest <- crime |>
+    group_by(Arrest) |>
+    summarise(count = n()) |>
+    mutate(percentage = c("78.29%", "21.71%"))
+  
+  ggplot(dfarrest, aes(x = "", y = count, fill = Arrest)) +
+    geom_col(color = "black") +
+    geom_label(aes(label = percentage),
+               position = position_stack(vjust = 0.5),
+               show.legend = FALSE) +
+    coord_polar(theta = "y") +
+    theme(panel.grid = element_blank(),
+          panel.background = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          plot.title = element_text(size=22, hjust = 0.5),
+          legend.box.background = element_rect(colour = "black")) +
+    ggtitle("Crime by Arrest")
+```
+
+<font size="3">
+This pie chart is based on if the individual(s) who committed the crime was arrested or not. Over 78 percent of the suspects are not arrested and only about 22 percent of them are arrested.
+</font>
+
+# Influential Factors
+
+## Unemployment and Crimes
+
+```{r, warning = FALSE}
+newun <- unemployment |>
+  filter(DATE >= 2012) |>
+  group_by(DATE) |>
+  summarise(Mean = mean(ILCOOK1URN))
+newcrime <- crime |>
+  rename(DATE = Year) |>
+  group_by(DATE) |>
+  summarise(n = n())
+newdf <- as_tibble(data.frame(Year = newcrime$DATE,
+                           Cases = newcrime$n,
+                           Unemployment = newun$Mean))
+ggplot(newdf) +
+  geom_segment(aes(x = Year, y = Cases, xend = factor(Year), yend = 0), size = 8, colour = "grey") + 
+  scale_y_continuous(name = "Number of Events",
+                     labels = scales::comma,
+                     sec.axis = sec_axis(trans = ~ . / 28000, name = "Unemployment Rate (%)")) +
+  geom_line(aes(x = factor(Year), y = Unemployment * 28000, group = 1), colour = "red") +
+  ggtitle("Unemployment Rate and Number of Cases (2012-2022)") +
+  theme_classic() +
+  theme(plot.title = element_text(size = 22, hjust = 0.5),
+        legend.box.background = element_rect(colour = "black"))
+```
+
+<font size="3">
+The diagram above shows the relationship between crime cases and unemployment. The y-axis on the left refers to the amount of crime cases and the right one refers to the unemployment rate. We can clearly see that the number of crime cases is positively related with the unemployment rate, except for the year 2020 in which the Covid-19 pademic happened which gave the economic a big strike.
+</font>
+
+## Season and Crimes
+
+```{r}
+Month <- str_extract(crime$Date, "\\d+")
+dfmonth1 <- as.data.frame(Month)
+ggplot(dfmonth1) +
+  geom_bar(aes(Month, fill = Month)) +
+  theme_classic() +
+  ggtitle("Crimes by Month") +
+  ylab("Count") +
+  scale_y_continuous(labels = scales::comma) +
+  theme(plot.title = element_text(size=22, hjust = 0.5),
+        legend.box.background = element_rect(colour = "black"))
+```
+
+<font size="3">
+We extract the months in which the crime cases happened and form a new data frame. Then we plot the number of crime cases by month. The plot clearly shows that summer is the season that had the most number of cases and winter is the season which had the least number of cases.
+</font>
+
+# Modeling
+
+## Data Wrangling
+
+<font size="3">
+We do a similar step like the first time , but this time cleaning more deeply for further modeling.
+</font>
+
+### Loading and tidying up the data
+
+```{r}
+##Import Full data
+data <- read.csv("Crimes_-_2001_to_Present.csv")
+## subset data for 2012 to 2022
+data2012 <- data %>% filter(Year>2011)
+## Extracting relevant variables
+data2012 <- data2012 %>% 
+  dplyr::select(Date,Primary.Type,Arrest,Domestic,Beat,
+                District,Year,Community.Areas,Census.Tracts,
+                Police.Beats)
+### Checking structure of data
+glimpse(data2012)
+```
+
+### Checking Missing values
+
+```{r}
+## Over all missing values
+sum(is.na(data2012))
+## Checking missing values in each column
+sapply(data2012, function (x) sum(is.na(x)))
+```
+
+<font size="3">
+We do find missing values are there in four columns:Community.Areas, Census.Tracts, Police.Beats, and Distrct. So we replace the missing values with median(because its discrete data).
+</font>
+
+```{r}
+## Community Areas
+data2012$Community.Areas <- ifelse(is.na(data2012$Community.Areas),
+                                   median(data2012$Community.Areas,na.rm = T),
+                                   data2012$Community.Areas)
+## Census Tracts
+data2012$Census.Tracts <- ifelse(is.na(data2012$Census.Tracts),
+                                   median(data2012$Census.Tracts,na.rm = T),
+                                   data2012$Census.Tracts)
+## Police Beats
+data2012$Police.Beats <- ifelse(is.na(data2012$Police.Beats),
+                                   median(data2012$Police.Beats,na.rm = T),
+                                   data2012$Police.Beats)
+## remove any other missing value
+data2012 <- na.omit(data2012)
+## Checking missing values again for confirmation
+sapply(data2012, function (x) sum(is.na(x)))
+```
+
+<font size="3">
+There are no more missing value among this data. 
+</font>
+
+### Encoding and breaking categorical variables to dummies
+
+<font size="3">
+We can use dummies as numeric variable, and each category can be treated as dummy
+</font>
+
+```{r}
+## Convert Arrest to dummy (True = 1, and False = 0)
+data2012$Arrest <- ifelse(data2012$Arrest == "false",0,1)
+## Convert Domestic to dummy (True = 1, and False = 0)
+data2012$Domestic <- ifelse(data2012$Domestic == "false",0,1)
+## Converting each "Primary.Type" categories to multiple dummies
+## Merging some categories
+data2012$Primary.Type[data2012$Primary.Type == "ASSAULT" |
+                        data2012$Primary.Type == "CRIM SEXUAL ASSAULT" |
+                        data2012$Primary.Type == "CRIMINAL SEXUAL ASSAULT"] <- "ASSAULT"
+data2012$Primary.Type[data2012$Primary.Type == "NON-CRIMINAL" |
+                      data2012$Primary.Type == "NON - CRIMINAL" |
+                      data2012$Primary.Type == "NON-CRIMINAL (SUBJECT SPECIFIED)"] <- "NON_CRIMINAL"
+data2012$Primary.Type[data2012$Primary.Type == "CONCEALED CARRY LICENSE VIOLATION" |
+                      data2012$Primary.Type == "LIQUOR LAW VIOLATION" |
+                      data2012$Primary.Type == "PUBLIC PEACE VIOLATION"|
+                      data2012$Primary.Type == "OTHER NARCOTIC VIOLATION"|
+                      data2012$Primary.Type == "INTERFERENCE WITH PUBLIC OFFICER"|
+                      data2012$Primary.Type == "PUBLIC INDECENCY"|
+                      data2012$Primary.Type == "RITUALISM"|
+                      data2012$Primary.Type == "WEAPONS VIOLATION"] <- "VIOLATION"
+data2012$Primary.Type[data2012$Primary.Type == "CRIMINAL DAMAGE" |
+                      data2012$Primary.Type == "CRIMINAL TRESPASS"] <- "CRIMINAL"
+data2012$Primary.Type[data2012$Primary.Type == "MOTOR VEHICLE THEFT" |
+                      data2012$Primary.Type == "THEFT"] <- "THEFT"
+data2012$Primary.Type[data2012$Primary.Type == "SEX OFFENSE" |
+                      data2012$Primary.Type == "OTHER OFFENSE"|
+                      data2012$Primary.Type == "OFFENSE INVOLVING CHILDREN" ] <- "OFFENSE"
+# Creating dummies
+data2012 <- data2012 %>% fastDummies::dummy_cols(select_columns = "Primary.Type")
+```
+
+## Clustering and K-means
+
+In order to detect the crime in districts, we need to use K-means.
+
+```{r}
+## Clustering
+## First there is need to scale data, to equalize magnitude
+scaled_data <- data2012[,-c(1,2,6,7)]
+## Correlation matrix
+ggcorr(scaled_data,size=2,hjust=1,vjust=1)
+```
+
+```{r,fig.align='center',fig.height=5,fig.width=6}
+## K-means
+# Trying Kmeans with different number of K values
+k2 <- kmeans(scaled_data, centers = 2, nstart = 25)
+k3 <- kmeans(scaled_data, centers = 3, nstart = 25)
+k4 <- kmeans(scaled_data, centers = 4, nstart = 25)
+k5 <- kmeans(scaled_data, centers = 5, nstart = 25)
+# plots to compare
+p1 <- fviz_cluster(k2, geom = "point", data = scaled_data) + ggtitle("k = 2")
+p2 <- fviz_cluster(k3, geom = "point",  data = scaled_data) + ggtitle("k = 3")
+p3 <- fviz_cluster(k4, geom = "point",  data = scaled_data) + ggtitle("k = 4")
+p4 <- fviz_cluster(k5, geom = "point",  data = scaled_data) + ggtitle("k = 5")
+## Plot all Combine
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
+
+<font size="3">
+We have tried different values of k from 2 to 5, and applied k-means on that data. We can see that almost all clusters are overlapping, but some of points in K = 2, are found to have many different points in different clusters.
+</font>
+
+### Checking outputs for K=2
+
+```{r}
+## Plot CLuster mean for each variable
+clust_means <- as.data.frame(k2$centers) %>%
+  pivot_longer(1:26,names_to = "Variable",values_to = "Cluster1 Mean") %>%
+  mutate(`Cluster1 Mean`=round(`Cluster1 Mean`,3))
+cbind.data.frame(clust_means[1:26,],`Cluster2 Mean`=clust_means$`Cluster1 Mean`[27:52])
+```
+
+### Comparing districts with clusters
+
+```{r}
+## Adding cluster variable in original data
+data2012$cluster <- k2$cluster
+## Comparing clusters with District
+table(data2012$District,data2012$cluster)
+```
+
+<font size="3">
+It shows that there are 91 times crime happened in cluster 1 of district 1,and 137237 times classified cluster 2, which add together becomes 137328. District 2 will be 124456,District 3 will be 165585, District 4 will be 128739, District 6 will be177211, District 7 will be 157593,District 8 will be 183847,District 9 will be 132126,District 10 will be 131960,District 11 will be 199145,District 12 will be 142589,District 14 will be 101692,District 15 will be119203,District 16 will be 99285,District 17 will be 81432,District 20 will be 50287,District 22 will be 93387,District 24 will be 85464,District 25 will be 156177,District 31 will be 84.So District 11 has the highest crime.
+</font>
+
+## Time Series
+
+In order to predict number of crimes in the next 100 days, we utilize Time Series Model to achieve it.
+
+```{r}
+data <- data %>% filter(Year>2011)
+data_time <- data %>% 
+  dplyr::select(Date) %>% ## Select date variable
+  mutate(Date = as.Date(Date, format="%d/%m/%Y")) %>%
+  group_by(Date) %>%
+  summarise(No.of.Crimes = n())
+## Checking structure of data
+glimpse(data_time)
+```
+
+### Creating and Plotting Timeseries
+
+```{r}
+## Data
+Crime_ts <- ts(data_time$No.of.Crimes[-1573], frequency = 365,start=c(2012,01,01))
+## Time Plot
+autoplot(Crime_ts)+
+   theme_minimal()+
+   labs(x= "Time",y="Number of Crimes")
+```
+
+<font size="3">
+The series looks stationary, but there is need to confirm stationary through ADF test. Also, there is a clear element seasonality in the series. 
+</font>
+
+### ADF Test
+
+```{r}
+adf.test(Crime_ts)
+```
+
+<font size="3">
+The Test p-value = 0.01 (less than 0.05), which shows that the null hypothesis of non-stationary is rejected, and the time series is stationary. Now, there is need to check the lag order.
+</font>
+
+### Exploring the Lag order through ACF, and PACF
+
+```{r}
+## For combining Plots
+par(mfrow=c(1,2), mar = c(5, 4, 4, 2) + 0.1)
+## ACF
+acf(Crime_ts,main="Crime ACF")
+## PACF
+pacf(Crime_ts,main="Crime PACF")
+```
+
+<font size="3">
+It can be observed that the spikes are going outside the limits, at each seasonal lag in proper pattern. Hence, there is a non-zero correlation at seasonal lags, and showing a seasonal patteren. We can use auto.arima function to fit our correct model.
+</font>
+
+```{r}
+## Fitting model
+Model_Arima <- auto.arima(Crime_ts)
+## Model summary
+summary(Model_Arima)
+```
+
+<font size="3">
+So, the Auto.arima suggested a better model, but not suggested a seasonal model. So, it suggested a ARIMA model with AR = 2, Diff = 1, and MA= 1, that is ARIMA (2,1,1).
+</font>
+
+### Forecasting
+
+<font size="3">
+The major purpose of the time-series was to forecast the number of crimes for future. Hence, we have Model fitted with Auto.arima. There is need to forecast, and we are going to for next 100 days.
+</font>
+
+```{r}
+## Forecasting
+Forecast_crime <- forecast(Model_Arima,h=100)
+## Print forecasting values
+Forecast_crime
+```
+
+## Plotting forecasted values
+```{r}
+Crime_ts %>% autoplot() +
+  autolayer(Forecast_crime) +
+  theme_bw()
+```
+
+<font size="3">
+From the dataframe above, 'Point Forecast' shows us the prediction number of crimes in the next 100 days, also the blue line of the plot shows above also means that. We can see, in the next 100 days, the crimes are gradually rise.
+</font>
+
+# Shiny App
+
+## Latest data access
+
+```{r, warning=FALSE, message=FALSE, eval=FALSE}
+library(httr)
+library(shinydashboard)
+library(shiny)
+library(data.table)
+library(shinyjs)
+library(shinyWidgets)
+library(tidyverse)
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Access data",tabName = "a"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "a",DT::dataTableOutput("table_names"))
+      )))
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")}
+shinyApp(ui, server)
+```
+
+![](shinydata.png)
+
+<font size="3"> 
+This Shinyapp allows user to access latest data of criminal information in Chicago from the government website.We use api connection to link the data from Internet into our Shinyapp. \
+(api connection:"https://data.cityofchicago.org/resource/crimes.json")
+</font>
+
+## Filter the data and visualization Shinyapp
+
+```{r, warning=FALSE, message=FALSE, eval = FALSE}
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Plot your file in barchart",tabName = "c"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "c",sidebarLayout(
+        sidebarPanel(
+          uiOutput("picker1"),
+          actionButton("view6", "View Selection"),
+          uiOutput("picker"),
+          actionButton("view5", "View Selection")
+        ),mainPanel(DT::dataTableOutput("table1"),plotOutput("plot1"))
+      )
+      ))))
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")
+   datasetInput3 <- eventReactive(input$view5,{
+     data2 <- datasetInput4()
+    if (input$pick == "primary_type"){
+      return(ggplot(data2,aes(primary_type,fill = primary_type)) + geom_bar()+theme_classic()+ theme(legend.key.size = unit(5,"mm"),axis.text.x = element_text(angle = 45,vjust =1,hjust = 1)))
+    } else if (input$pick == "arrest")
+    {
+      return(ggplot(data2,aes(arrest,fill = arrest)) + geom_bar()+theme_classic())
+    } else if (input$pick == "domestic")
+    {
+      return(ggplot(data2,aes(domestic,fill = domestic)) + geom_bar()+theme_classic())
+    } else if (input$pick == "district")
+    {
+      return(ggplot(data2,aes(district,fill = district)) + geom_bar()+theme_classic())
+    } else if (input$pick == "location_description")
+    {
+      return(ggplot(data2,aes(location_description,fill = location_description)) + geom_bar()+theme_classic())
+    }
+   })
+   output$picker <- renderUI({
+    pickerInput(inputId = 'pick', 
+                label = 'Choose column you want to see', 
+                choices = c("primary_type","arrest","domestic","district","location_description"),
+                options = list(`actions-box` = TRUE),multiple = F)
+   })
+   datasetInput4 <- eventReactive(input$view6,{
+     dat1 <- result()
+      if(input$pick2 == "001"){
+        data2 <- dat1 %>% filter(district == "001")
+      } else if(input$pick2 == "002"){
+        data2 <- dat1 %>% filter(district == "002")
+      } else if(input$pick2 == "003"){
+        data2 <- dat1 %>% filter(district == "003")
+      } else if(input$pick2 == "004"){
+        data2 <- dat1 %>% filter(district == "004")
+      } else if(input$pick2 == "005"){
+        data2 <- dat1 %>% filter(district == "005")
+      } else if(input$pick2 == "006"){
+        data2 <- dat1 %>% filter(district == "006")
+      } else if(input$pick2 == "007"){
+        data2 <- dat1 %>% filter(district == "007")
+      } else if(input$pick2 == "008"){
+        data2 <- dat1 %>% filter(district == "008")
+      } else if(input$pick2 == "009"){
+        data2 <- dat1 %>% filter(district == "009")
+      } else if(input$pick2 == "010"){
+        data2 <- dat1 %>% filter(district == "010")
+      } else if(input$pick2 == "011"){
+        data2 <- dat1 %>% filter(district == "011")
+      } else if(input$pick2 == "012"){
+        data2 <- dat1 %>% filter(district == "012")
+      } else if(input$pick2 == "013"){
+        data2 <- dat1 %>% filter(district == "013")
+      } else if(input$pick2 == "014"){
+        data2 <- dat1 %>% filter(district == "014")
+      } else if(input$pick2 == "015"){
+        data2 <- dat1 %>% filter(district == "015")
+      } else if(input$pick2 == "016"){
+        data2 <- dat1 %>% filter(district == "016")
+      } else if(input$pick2 == "017"){
+        data2 <- dat1 %>% filter(district == "017")
+      } else if(input$pick2 == "018"){
+        data2 <- dat1 %>% filter(district == "018")
+      } else if(input$pick2 == "019"){
+        data2 <- dat1 %>% filter(district == "019")
+      } else if(input$pick2 == "020"){
+        data2 <- dat1 %>% filter(district == "020")
+      } else if(input$pick2 == "021"){
+        data2 <- dat1 %>% filter(district == "021")
+      } else if(input$pick2 == "022"){
+        data2 <- dat1 %>% filter(district == "022")
+      } else if(input$pick2 == "023"){
+        data2 <- dat1 %>% filter(district == "023")
+      } else if(input$pick2 == "024"){
+        data2 <- dat1 %>% filter(district == "024")
+      } else if(input$pick2 == "025"){
+        data2 <- dat1 %>% filter(district == "025")
+      }})
+   output$picker1 <- renderUI({
+    pickerInput(inputId = 'pick2', 
+                label = 'Select district', 
+                choices = c("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025"),
+                options = list(`actions-box` = TRUE),multiple = F)
+   })
+   value <- reactive({ input$pick2 })
+   output$table1 <- DT::renderDataTable({datasetInput4()})
+   output$plot1 <- renderPlot({
+     datasetInput3()
+   })}
+shinyApp(ui, server)
+```
+
+<font size="3">
+Select which district you want
+</font> 
+
+![](districtselect.png)
+
+<font size="3">
+Select which column you want
+</font> 
+
+![](selectcolumn.png)
+
+<font size="3">
+The Tableoutput of your selection
+</font> 
+
+![](districtoutput.png)
+
+<font size="3">
+The plot output of your selection
+</font> 
+
+![](plotoutput.png)
+
+<font size="3"> 
+In this Shinyapp, we allow users to select the district from "001" to "025" which is defined by police department and select which column of data they want to see. Then the Shinyapp will produce the filtered table based on users selection. Also, we provide the visualization of the table to let users have a better and clear view of data they want. Based on these information provided by Shinyapp and our analysis above, we hope users can have some ideas about the current situation and avoid some high risk areas. Data in this app also connect to the Internet, so everything inside is up to date.
+</font>
+
+## Latest data access
+
+```{r, warning=FALSE, message=FALSE, eval = FALSE}
+apiKey <- "XXXXXXXXXXX"
+result <- GET("https://data.cityofchicago.org/resource/crimes.json",
+              add_headers(Authorization = paste("Key", apiKey)))
+ui <- dashboardPage(skin = "red",
+  dashboardHeader(title = "Data up to date"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Access data",tabName = "a"))),
+  dashboardBody(useShinyjs(),
+    tabItems(
+      tabItem(tabName = "a",leafletOutput("Mapofcrime"))
+      )))
+server <- function(input, output) { 
+  url <- reactive({
+  paste("https://data.cityofchicago.org/resource/crimes.json")
+  })
+  
+  result <- reactive ({ 
+    r_json <- jsonlite::fromJSON(url(), flatten = TRUE)
+  })
+   output$table_names <- DT::renderDataTable({
+    result()
+   })
+   addClass(selector = "body", class = "sidebar-collapse")
+   output$Mapofcrime <- renderLeaflet({
+     crimemap<- result()
+     crimemap$longitude <- as.numeric(crimemap$longitude)
+     crimemap$latitude <- as.numeric(crimemap$latitude) 
+     leaflet(data = crimemap[1:1000,]) %>% addTiles() %>%
+  addMarkers(~longitude, ~latitude,clusterOptions = markerClusterOptions())
+   })
+   }
+shinyApp(ui, server)
+```
+
+![](mapoutput.png)
+
+![](cluster2.png)
+
+![](cluster3.png)
+
+<font size="3">
+In this Shinyapp,we create a live map which will update data everyday from the Internet and mark the lastest crime on the map. We filter the first 1000 rows of latest data from Internet, so the map will not be messed up by large number of data. Also we use clustering markers in the map. This can increase users' experience and the information on it will be more directed. Users also can zoom in or zoom out to see the precise point on the map. We hope this map can help users notice which area is high risk area.
+</font>
+
+# CONCLUSION
+
+<font size="3">
+1. For this project, after EDA the crime data and unemployment data, we found that the unemployment rate seems to have some influence,and the month also seems to have some influence, with the winter months of January-April having the lowest crime rates, and the summer months of May-August having the highest crime rates. But overall, the crime rate in Chicago generally around 200,000. What's more, the most frequent "crime" in Chicago are theft while the second most are Battery. Most of the crime happens in  011, 006, and 008.Therefore, to ensure safety when staying in Chicago, people need to be careful of these three districts, as well as thieves on the street.\
+
+2. Overall, the number of crimes has shown a downward trend since 2012. In order to analyze which district have more crimes, we use k-means. It shows that District 11 has the highest crimes while District 31 has the lowest crimes. Also, for further predicting crimes, we use time series model, which shows that the number of crimes that keeps going between 600-700 in the next 100 days.It's a reminder to the people in Chicago to stay safe and alert to the dangers.
+</font>
