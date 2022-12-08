@@ -1,0 +1,16 @@
+---
+title: "peer evaluation"
+author: "yuhuiw2-qingyuh2-wg16"
+date: "2022-12-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Our group members, Wenxuan Gu(wg16), Qingyu Huang(qingyuh2), Yuhui Wang(yuhuiw2) all contributed to this project in different ways. Every group member shares incredible ideas and thoughts at every stage of this project. 
+
+Wenxuan Gu finished the shiny app part, and he also help Yuhui Wang to do the visualization. Yuhui Wang did the EDA and influential factors part, and help us to make a ppt. Both Wenxuan Gu and Yuhui Wang together to upload our file to github. Qingyu Huang did the data wrangling and modeling parts, and help to organize the final report, like the format and conclusion.
+
+
